@@ -24,11 +24,7 @@ export default function App() {
           'ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24butLoguj=Zaloguj';
 
       const response = await axiosInstance.post(
-          LOGIN_URL,
-          {data: loginData},
-          {
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          },
+          LOGIN_URL,{data: loginData}
       );
       //Redirect KierunkiStudiow
     }
