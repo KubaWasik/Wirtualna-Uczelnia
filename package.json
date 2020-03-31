@@ -15,7 +15,8 @@
     "react-native-paper": "^3.6.0",
     "react-native-screens": "2.0.0-alpha.12",
     "react-native-size-matters": "^0.3.0",
-    "react-native-web": "~0.11.7"
+    "react-native-web": "~0.11.7",
+    "axios": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
