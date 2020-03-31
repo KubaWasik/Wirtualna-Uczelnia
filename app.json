@@ -1,19 +1,20 @@
 {
   "expo": {
-    "name": "Blank Template (TypeScript)",
+    "name": "Wirtualna Uczelnia UP",
+    "description": "Aplikacja do wyświetlania danych z Wirtualneh Uczelni Uniwersytetu Pedagogicznego w Krakowie (system \"XP\") w sposób czytelny dla normalnego człowieka",
     "slug": "Wirtualna-Uczelnia",
-    "privacy": "public",
+    "privacy": "unlisted",
     "sdkVersion": "36.0.0",
     "platforms": [
-      "ios",
       "android",
-      "web"
+      "web",
+      "ios"
     ],
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/school.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/loading.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -23,8 +24,14 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "android": {
+      "package": "com.up.wirtualnauczelnia",
+      "versionCode": 1
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.up.wirtualnauczelnia",
+      "buildNumber": "0.0.1"
     }
   }
 }
