@@ -1,7 +1,9 @@
 import React, {useEffect} from 'react';
+import { Provider as PaperProvider } from "react-native-paper";
 import { StyleSheet, Text, View } from 'react-native';
 import {axiosInstance, LOGIN_URL} from "./session/Session";
-
+import LoginScreen from './screens/LoginScreen';
+    
 export default function App() {
 
   useEffect( ()=> {
@@ -32,17 +34,8 @@ export default function App() {
   },[])
 
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-    </View>
+    <PaperProvider>
+			<LoginScreen />
+		</PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
