@@ -1,14 +1,10 @@
 import * as React from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Dimensions,
-  Image
-} from "react-native";
+import { Dimensions, Image, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { Button, Headline, HelperText, TextInput } from "react-native-paper";
 import { ScaledSheet } from "react-native-size-matters";
-import { Headline, TextInput, Button } from "react-native-paper";
+import { axiosInstance } from "../session/Session";
 
-const logo = require("../assets/icon.png");
+const logo = require("../assets/logoUP.png");
 const keyboardVerticalOffset = Platform.OS === "ios" ? 40 : 0;
 const window = Dimensions.get("window");
 const IMAGE_SIZE = window.width / 2;
@@ -16,8 +12,42 @@ const IMAGE_SIZE = window.width / 2;
 function LoginScreen() {
   const [login, setLogin] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [isLoginEmpty, setIsLoginEmpty] = React.useState(false);
+  const [isPasswordEmpty, setIsPasswordEmpty] = React.useState(false);
+
   const inputLogin = React.useRef(null);
   const inputPassword = React.useRef(null);
+
+  const handleSubmit = async () => {
+    if (login.length === 0) {
+      setIsLoginEmpty(true);
+    } else {
+      setIsLoginEmpty(false);
+    }
+
+    if (password.length === 0) {
+      setIsPasswordEmpty(true);
+    } else {
+      setIsPasswordEmpty(false);
+    }
+
+    if (login.length === 0 || password.length === 0) {
+      return;
+    }
+
+    // TODO: login function
+
+    // const response = await axiosInstance.post( some URL, some data, some config );
+
+    // alert error if fail, well now it will always fail
+    
+    Alert.alert(
+      "Błąd",
+      "Nie udało się zalogować, wystąpił błąd, proszę spróbować ponownie",
+      [{ text: "OK" }],
+      { cancelable: false }
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -37,6 +67,9 @@ function LoginScreen() {
         onSubmitEditing={() => inputPassword.current.focus()}
         returnKeyType={"next"}
       />
+      <HelperText type="error" visible={isLoginEmpty} style={styles.helperText}>
+        Proszę podać login
+      </HelperText>
       <TextInput
         label="Hasło"
         value={password}
@@ -46,11 +79,19 @@ function LoginScreen() {
         onChangeText={value => setPassword(value)}
         secureTextEntry={true}
       />
+      <HelperText
+        type="error"
+        visible={isPasswordEmpty}
+        style={styles.helperText}
+      >
+        Proszę podać hasło
+      </HelperText>
+
       <Button
         style={styles.loginButton}
         mode="outlined"
-        // TODO: Login function
-        onPress={() => console.log("button pressed")}
+        onPress={handleSubmit}
+        labelStyle={styles.loginButtonText}
       >
         Zaloguj
       </Button>
@@ -64,37 +105,37 @@ const styles = ScaledSheet.create({
     margin: 25
   },
   header: {
-    flexBasis: "10%",
+    height: "40@s",
     textAlign: "center",
-    fontSize: 20,
+    fontSize: "20@s",
     paddingTop: 10
   },
   textInput: {
-    flexBasis: "15%",
-    marginTop: 15,
-    marginBottom: 5,
-    fontSize: 12
+    height: "50@s",
+    fontSize: "12@s"
   },
   loginButton: {
-    flexBasis: "10%",
+    height: "50@s",
     marginTop: 15,
     alignSelf: "center",
     width: "50%",
-    justifyContent: "center"
+    justifyContent: "center",
+    maxHeight: 50
+  },
+  loginButtonText: {
+    fontSize: "10@s"
   },
   logo: {
     flexBasis: "40%",
     resizeMode: "contain",
     height: IMAGE_SIZE,
     width: IMAGE_SIZE,
-    alignSelf: "center",
-    marginBottom: 10,
-    padding: 10
+    alignSelf: "center"
   },
   helperText: {
-    flexBasis: "10%",
+    height: "30@s",
     alignSelf: "center",
-    fontSize: 10
+    fontSize: "10@s"
   }
 });
 
