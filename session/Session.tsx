@@ -10,6 +10,5 @@ export const SCHEDULE_URL = 'PodzGodzin.aspx';
 
 export const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  headers: {'Content-Type': 'application/x-www-form-urlencoded'},
   withCredentials: true,
 });
