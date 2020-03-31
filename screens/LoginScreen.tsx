@@ -49,6 +49,7 @@ function LoginScreen() {
       <Button
         style={styles.loginButton}
         mode="outlined"
+        // TODO: Login function
         onPress={() => console.log("button pressed")}
       >
         Zaloguj
