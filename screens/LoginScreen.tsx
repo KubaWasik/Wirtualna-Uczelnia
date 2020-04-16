@@ -1,26 +1,26 @@
 import * as SecureStore from "expo-secure-store";
 import * as React from "react";
-import {Alert, AsyncStorage, Dimensions, Image, KeyboardAvoidingView, Platform} from "react-native";
+import { Alert, Dimensions, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { Button, Headline, HelperText, TextInput } from "react-native-paper";
 import { ScaledSheet } from "react-native-size-matters";
-import {axiosInstance, LOGIN_URL} from "../session/Session";
-import cheerio from "react-native-cheerio";
-import {AxiosRequestConfig} from "axios";
-import qs from "qs";
-
+import { AuthContext } from "../context/Context";
+import * as Errors from "../errors/Errors";
+import LoadingOverview from "./LoadingOverview";
 
 const logo = require("../assets/logoUP.png");
 const keyboardVerticalOffset = Platform.OS === "ios" ? 40 : 0;
 const window = Dimensions.get("window");
 const IMAGE_SIZE = window.width / 2;
 
-function LoginScreen({navigation}) {
+const LoginScreen = () => {
   const [login, setLogin] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [isLoginEmpty, setIsLoginEmpty] = React.useState(false);
   const [isPasswordEmpty, setIsPasswordEmpty] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
-  
+
+  const { signIn } = React.useContext(AuthContext);
+
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -65,45 +65,47 @@ function LoginScreen({navigation}) {
 
     setLoading(true);
 
-    const loginGetResponse = await axiosInstance.get(LOGIN_URL);
-    const login$ = cheerio.load(loginGetResponse.data);
-    const loginInputsToPost = {};
-    const hiddenLoginInputs = login$("input[type='hidden']");
-    hiddenLoginInputs.each((index, element) => {
-      loginInputsToPost[element.attribs.name] = element.attribs.value
-        ? element.attribs.value
-        : "";
-    });
+    const response = await signIn({ login, password });
 
-    loginInputsToPost[
-      "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$txtIdent"
-      ] = login;
-    loginInputsToPost[
-      "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$txtHaslo"
-      ] = password;
-    loginInputsToPost[
-      "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$butLoguj"
-      ] = "Zaloguj";
+    switch (response) {
+      case Errors.ERROR:
+        Alert.alert(
+          "Błąd",
+          "Nie udało się zalogować, wystąpił błąd, proszę spróbować ponownie",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        break;
 
-    const loginOptions: AxiosRequestConfig = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: qs.stringify(loginInputsToPost),
-      url: LOGIN_URL,
-    };
+      case Errors.LOGIN_PASSWORD_ERROR:
+        Alert.alert(
+          "Błędne dane",
+          "Nie udało się zalogować, podane dane do logowania są błędne, sprawdź poprawność danych i spróbuj ponownie",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        break;
 
-    const response1 = await axiosInstance(loginOptions);
-    if(response1.request.responseURL.includes("KierunkiStudiow")){
-      await SecureStore.setItemAsync("loginUser", login);
-      await SecureStore.setItemAsync("passwordUser", password);
-      props.setLogin(true);
+      case Errors.UNEXPECTED_ERROR:
+        Alert.alert(
+          "Nieznany błąd",
+          "Nie udało się zalogować, wystąpił nieznany błąd, proszę spróbować ponownie",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        break;
+      case Errors.NETWORK_ERROR:
+        Alert.alert(
+          "Błąd sieci",
+          "Nie udało się zalogować, wystąpił błąd połączenia z internetem, proszę sprawdzić połączenie i spróbować ponownie",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        break;
+      default:
+        break;
     }
-    // alert error if fail, well now it will always fail
 
-    navigation.navigate("Home");
-    
     setLoading(false);
   };
 
@@ -116,6 +118,7 @@ function LoginScreen({navigation}) {
       behavior="position"
       keyboardVerticalOffset={keyboardVerticalOffset}
     >
+      <LoadingOverview visible={loading} />
       <Image source={logo} style={styles.logo} />
       <Headline style={styles.header}>Wirtualna Uczelnia</Headline>
       <TextInput

@@ -2,15 +2,15 @@
   "expo": {
     "name": "Wirtualna Uczelnia UP",
     "description": "Aplikacja do wyświetlania danych z Wirtualneh Uczelni Uniwersytetu Pedagogicznego w Krakowie (system \"XP\") w sposób czytelny dla normalnego człowieka",
-    "slug": "Wirtualna-Uczelnia",
+    "slug": "WU-UP",
     "privacy": "unlisted",
     "sdkVersion": "36.0.0",
     "platforms": [
       "android",
-      "web",
-      "ios"
+      "ios",
+      "web"
     ],
-    "version": "0.0.1",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/school.png",
     "splash": {
@@ -25,13 +25,12 @@
       "**/*"
     ],
     "android": {
-      "package": "com.up.wirtualnauczelnia",
-      "versionCode": 1
+      "package": "com.wu.up.wirtualnauczelnia",
+      "versionCode": 14
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.up.wirtualnauczelnia",
-      "buildNumber": "0.0.1"
+      "bundleIdentifier": "com.wu.up.wirtualnauczelnia",
+      "buildNumber": "0.6.0"
     }
   }
 }

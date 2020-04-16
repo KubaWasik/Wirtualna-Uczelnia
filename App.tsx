@@ -1,28 +1,54 @@
-import { AuthContext, ISignIn } from "./Context/Context";
+import NetInfo, { useNetInfo } from "@react-native-community/netinfo";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import React, { useEffect } from "react";
+import * as Sentry from "@sentry/browser";
+import * as SecureStore from "expo-secure-store";
+import moment from "moment";
+import React from "react";
+import { AsyncStorage } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
+import { AuthContext, ISignIn } from "./context/Context";
+import * as Errors from "./errors/Errors";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
+import OfflineScreen from "./screens/OfflineScreen";
 import SplashScreen from "./screens/SplashScreen";
-import { axiosInstance, LOGIN_URL } from "./session/Session";
+import StudiesFieldScreen from "./screens/StudiesFieldScreen";
+import fetchLogin from "./session/FetchLogin";
+import { setStudiesField } from "./session/FetchStudiesField";
+import { createAxiosInstance } from "./session/Session";
+
+type RootStackParamList = {
+  Splash: undefined;
+  Offline: undefined;
+  Home: undefined;
+  LogIn: undefined;
+  StudiesField: undefined;
+};
 
 type State = {
   isLoading: boolean;
   isSignout: boolean;
   userToken: string;
-};
-
-export type RootStackParamList = {
-  Splash: undefined;
-  Home: undefined;
-  LogIn: undefined;
+  rememberStudiesField: string;
+  studiesFieldNumber: number;
+  offline: boolean;
+  autoLogin: string;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
-  
+
 export default function App() {
+  Sentry.init({
+    dsn: "https://9c9df7e21dbe44cab619fdb86fe0097c@sentry.io/5181487",
+  });
+  const netInfo = useNetInfo();
+
+  React.useEffect(() => {
+    console.log("netInfo hook:");
+    console.log(netInfo);
+  }, [netInfo]);
+
   const [state, dispatch]: [
     State,
     (action: { type?: string; token?: string }) => void
@@ -47,12 +73,23 @@ export default function App() {
             isSignout: true,
             userToken: null,
           };
+        case "SIGN_IN_OFFLINE":
+          return {
+            ...prevState,
+            isSignout: false,
+            userToken: action.token,
+            offline: true,
+          };
       }
     },
     {
       isLoading: true,
       isSignout: false,
       userToken: null,
+      rememberStudiesField: null,
+      studiesFieldNumber: null,
+      offline: false,
+      autoLogin: false,
     }
   );
 
@@ -62,17 +99,42 @@ export default function App() {
       let userToken: string;
 
       try {
-        // TODO: restore token from memory
+        await createAxiosInstance();
+        state.autoLogin = await AsyncStorage.getItem("autoLogin");
+
+        state.autoLogin && state.autoLogin === "true"
+          ? (userToken = await SecureStore.getItemAsync("userToken"))
+          : (userToken = null);
+
+        state.rememberStudiesField = await AsyncStorage.getItem(
+          "rememberStudiesField"
+        );
+        const studiesFieldNumberFromMemory = await AsyncStorage.getItem(
+          "studiesFieldNumber"
+        );
+        state.studiesFieldNumber = studiesFieldNumberFromMemory
+          ? Number.parseInt(studiesFieldNumberFromMemory)
+          : null;
+
+        if (state.rememberStudiesField && state.studiesFieldNumber) {
+          setStudiesField(state.studiesFieldNumber, true);
+        }
       } catch (e) {
         // Restoring token failed
         console.log(e);
       }
 
       // After restoring token, we may need to validate it in production apps
+
+      if (userToken) {
+        const now = moment();
+        const dif = now.diff(moment(userToken), "days");
+        dif > 30 ? (userToken = null) : null;
+      }
+
       // This will switch to the App screen or Auth screen and this loading
       // screen will be unmounted and thrown away.
-      // dispatch({ type: "RESTORE_TOKEN", token: userToken });
-      dispatch({ type: "RESTORE_TOKEN", token: state.userToken });
+      dispatch({ type: "RESTORE_TOKEN", token: userToken });
     };
 
     bootstrapAsync();
@@ -81,33 +143,50 @@ export default function App() {
   const authContext = React.useMemo(
     () => ({
       signIn: async (data: ISignIn, offline: boolean = false) => {
+        console.log("signIn offline: " + offline);
+
+        if (offline) {
+          AsyncStorage.setItem("offlineMode", "true");
+          const token = moment().format("YYYY-MM-DD hh:mm");
+          await SecureStore.setItemAsync("userToken", token);
+
+          dispatch({ type: "SIGN_IN_OFFLINE", token: token });
+          return;
+        }
+
+        console.log("NetInfo.fetch()");
+        const info = await NetInfo.fetch();
+        console.log(info);
+
+        if (!info.isConnected || !info.isInternetReachable) {
+          return Errors.NETWORK_ERROR;
+        }
+
         // In a production app, we need to send some data (usually username, password) to server and get a token
         // We will also need to handle errors if sign in failed
         // After getting token, we need to persist the token using `AsyncStorage`
         // In the example, we'll use a dummy token
 
-        const loginData =
-          "ctl00_ctl00_ScriptManager1_HiddenField=&" +
-          "__EVENTTARGET=&" +
-          "__EVENTARGUMENT=&" +
-          "__VIEWSTATE=&" +
-          "__VIEWSTATEGENERATOR=&" +
-          "ctl00_ctl00_TopMenuPlaceHolder_TopMenuContentPlaceHolder_MenuTop3_menuTop3_ClientState=&" +
-          "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24txtIdent=" +
-          data.login +
-          "&" +
-          "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24txtHaslo=" +
-          data.password +
-          "&" +
-          "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24butLoguj=Zaloguj";
+        const response = await fetchLogin(
+          data,
+          state.rememberStudiesField,
+          state.studiesFieldNumber
+        );
 
-        const response = await axiosInstance.post(LOGIN_URL, {
-          data: loginData,
-        });
+        if (response === "SUCCESS") {
+          const token = moment().format("YYYY-MM-DD hh:mm");
+          await SecureStore.setItemAsync("userToken", token);
+          setStudiesField(171737, true);
 
-        dispatch({ type: "SIGN_IN", token: "dummy-auth-token" });
+          dispatch({ type: "SIGN_IN", token: token });
+        } else {
+          return response;
+        }
       },
       signOut: async () => {
+        await SecureStore.deleteItemAsync("userToken");
+        const t = await SecureStore.getItemAsync("userToken");
+
         dispatch({ type: "SIGN_OUT" });
       },
       signUp: async (data: any) => {
@@ -126,7 +205,8 @@ export default function App() {
     <PaperProvider>
       <AuthContext.Provider value={{ ...authContext }}>
         <NavigationContainer>
-          {loading ? (
+          {state.isLoading ? (
+            // We haven't finished checking for the token yet
             <Stack.Navigator>
               <Stack.Screen
                 name="Splash"
@@ -134,20 +214,56 @@ export default function App() {
                 component={SplashScreen}
               />
             </Stack.Navigator>
-          ) : (
+          ) : !state.offline &&
+            (!netInfo.isConnected || !netInfo.isInternetReachable) ? (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="Offline"
+                options={{ title: "Tryb offline", headerShown: false }}
+                component={OfflineScreen}
+              />
+            </Stack.Navigator>
+          ) : state.userToken == null ? (
+            // No token found, user isn't signed in
             <Stack.Navigator>
               <Stack.Screen
                 name="LogIn"
                 component={LoginScreen}
                 options={{
                   title: "Zaloguj się",
+                  // When logging out, a pop animation feels intuitive
+                  animationTypeForReplace: state.isSignout ? "pop" : "push",
                   headerShown: false,
                 }}
+              />
+            </Stack.Navigator>
+          ) : /* TODO: If user have not choose field of study yet then show StudiesFieldScreen */
+          state.rememberStudiesField === "false" ||
+            state.rememberStudiesField == null ? (
+            // User is signed in
+            <Stack.Navigator>
+              <Stack.Screen
+                name="StudiesField"
+                component={StudiesFieldScreen}
+                options={{ title: "Wybór kierunku", headerShown: false }}
               />
               <Stack.Screen
                 name="Home"
                 component={HomeScreen}
                 options={{ title: "Wirtualna uczelnia", headerShown: false }}
+              />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{ title: "Wirtualna uczelnia", headerShown: false }}
+              />
+              <Stack.Screen
+                name="StudiesField"
+                component={StudiesFieldScreen}
+                options={{ title: "Wybór kierunku", headerShown: false }}
               />
             </Stack.Navigator>
           )}

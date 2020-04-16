@@ -5,30 +5,47 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "eject": "expo eject"
+    "eject": "expo eject",
+    "lint": "tslint 'src/**/*.{ts,tsx}'"
   },
   "dependencies": {
     "@react-native-community/masked-view": "0.1.5",
-    "@react-navigation/material-bottom-tabs": "^5.1.8",
-    "@react-navigation/native": "^5.1.5",
-    "@react-navigation/stack": "^5.2.10",
-    "axios": "latest",
-    "cheerio": "^1.0.0-rc.3",
-    "expo": "^36.0.2",
+    "@react-native-community/netinfo": "4.6.0",
+    "@react-navigation/material-bottom-tabs": "^5.1.6",
+    "@react-navigation/native": "^5.1.3",
+    "@react-navigation/stack": "^5.2.6",
+    "@sentry/browser": "^5.15.4",
+    "@types/react-native-calendars": "^1.20.7",
+    "@typescript-eslint/eslint-plugin": "^2.25.0",
+    "@typescript-eslint/parser": "^2.25.0",
+    "axios": "^0.19.2",
+    "eslint": "^6.8.0",
+    "eslint-config-universe": "^2.3.0",
+    "expo": "~36.0.0",
+    "expo-calendar": "~8.0.0",
+    "expo-intent-launcher": "~8.0.0",
+    "expo-secure-store": "~8.0.0",
+    "moment": "^2.24.0",
+    "prettier": "^2.0.2",
     "react": "~16.9.0",
     "react-dom": "~16.9.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.0.tar.gz",
+    "react-native-calendars": "^1.264.0",
     "react-native-cheerio": "^1.0.0-rc.4",
-    "react-native-paper": "latest",
-    "axios": "latest",
-    "expo-secure-store": "latest"
     "react-native-gesture-handler": "~1.5.0",
+    "react-native-modal": "^11.5.6",
+    "react-native-paper": "^3.6.0",
     "react-native-reanimated": "~1.4.0",
     "react-native-safe-area-context": "0.6.0",
     "react-native-screens": "2.0.0-alpha.12",
     "react-native-size-matters": "^0.3.0",
     "react-native-vector-icons": "^6.6.0",
-    "react-native-web": "~0.11.7"
+    "react-native-web": "~0.11.7",
+    "reanimated-bottom-sheet": "^1.0.0-alpha.19",
+    "tslint": "^6.1.0",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-config-standard": "^9.0.0",
+    "tslint-react": "^4.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
@@ -37,5 +54,8 @@
     "babel-preset-expo": "~8.0.0",
     "typescript": "~3.6.3"
   },
-  "private": true
+  "private": true,
+  "eslintConfig": {
+    "extends": "universe"
+  }
 }
