@@ -19,8 +19,10 @@
     "react-dom": "~16.9.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.0.tar.gz",
     "react-native-cheerio": "^1.0.0-rc.4",
-    "react-native-gesture-handler": "~1.5.0",
     "react-native-paper": "latest",
+    "axios": "latest",
+    "expo-secure-store": "latest"
+    "react-native-gesture-handler": "~1.5.0",
     "react-native-reanimated": "~1.4.0",
     "react-native-safe-area-context": "0.6.0",
     "react-native-screens": "2.0.0-alpha.12",
