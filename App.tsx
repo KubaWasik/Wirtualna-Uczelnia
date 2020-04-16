@@ -1,6 +1,9 @@
-import React from "react";
-import { Provider as PaperProvider } from "react-native-paper";
 import { AuthContext, ISignIn } from "./Context/Context";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import React, { useEffect } from "react";
+import { Provider as PaperProvider } from "react-native-paper";
+import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import SplashScreen from "./screens/SplashScreen";
 import { axiosInstance, LOGIN_URL } from "./session/Session";
@@ -11,6 +14,14 @@ type State = {
   userToken: string;
 };
 
+export type RootStackParamList = {
+  Splash: undefined;
+  Home: undefined;
+  LogIn: undefined;
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
+  
 export default function App() {
   const [state, dispatch]: [
     State,
@@ -114,7 +125,33 @@ export default function App() {
   return (
     <PaperProvider>
       <AuthContext.Provider value={{ ...authContext }}>
-        {state.isLoading ? <SplashScreen /> : <LoginScreen />}
+        <NavigationContainer>
+          {loading ? (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="Splash"
+                options={{ title: "Ładowanie", headerShown: false }}
+                component={SplashScreen}
+              />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="LogIn"
+                component={LoginScreen}
+                options={{
+                  title: "Zaloguj się",
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{ title: "Wirtualna uczelnia", headerShown: false }}
+              />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
       </AuthContext.Provider>
     </PaperProvider>
   );
