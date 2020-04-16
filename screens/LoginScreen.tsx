@@ -14,7 +14,7 @@ const keyboardVerticalOffset = Platform.OS === "ios" ? 40 : 0;
 const window = Dimensions.get("window");
 const IMAGE_SIZE = window.width / 2;
 
-const LoginScreen = (props) => {
+function LoginScreen({navigation}) {
   const [login, setLogin] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [isLoginEmpty, setIsLoginEmpty] = React.useState(false);
@@ -100,6 +100,9 @@ const LoginScreen = (props) => {
       await SecureStore.setItemAsync("passwordUser", password);
       props.setLogin(true);
     }
+    // alert error if fail, well now it will always fail
+
+    navigation.navigate("Home");
     
     setLoading(false);
   };
