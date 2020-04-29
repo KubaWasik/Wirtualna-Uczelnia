@@ -81,13 +81,11 @@ export default function SettingsScreen() {
           />
         </View>
         <View style={styles.flexRow}>
-          <Button
-            style={styles.button50}
-            mode="outlined"
-            onPress={async () => {
+          <Button style={styles.button50} mode="outlined" onPress={async () => {
               await signOut();
               Updates.reload();
-            }}
+            }
+            }
           >
             Wyloguj
           </Button>
