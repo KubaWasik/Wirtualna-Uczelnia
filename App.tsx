@@ -40,7 +40,8 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   Sentry.init({
-    dsn: "https://9c9df7e21dbe44cab619fdb86fe0097c@sentry.io/5181487",
+    //overwritten
+    dsn: "",
   });
   const netInfo = useNetInfo();
 
