@@ -1,6 +1,8 @@
-import { AxiosResponse } from "axios";
+import { AxiosInstance, AxiosRequestConfig } from "axios";
 import moment from "moment";
+import qs from "qs";
 import cheerio from "react-native-cheerio";
+import { SCHEDULE_URL } from "./Session";
 
 export interface IEventItem {
   date: moment.Moment;
@@ -22,17 +24,66 @@ export interface IMarked {
 export interface ISchedule {
   eventsTable: { [id: string]: IEventItem[] };
   marks: { [id: string]: IMarked };
+  minDate: moment.Moment;
+  maxDate: moment.Moment;
 }
 
-async function fetchSchedule(response: AxiosResponse): Promise<ISchedule> {
+const getSchedule = async (axiosInstance: AxiosInstance) => {
+  const getResponse = await axiosInstance.get(SCHEDULE_URL);
+  const $ = cheerio.load(getResponse.data);
+  const scheduleInputsToPost = {};
+  const hiddenScheduleInputs = $("input[type='hidden']");
+  hiddenScheduleInputs.each((index, element) => {
+    scheduleInputsToPost[element.attribs.name] = element.attribs.value
+      ? element.attribs.value
+      : "";
+  });
+
+  scheduleInputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$RightContentPlaceHolder$rbJak"
+  ] = "Semestralnie";
+
+  const options: AxiosRequestConfig = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    data: qs.stringify(scheduleInputsToPost),
+    url: SCHEDULE_URL,
+  };
+
+  const response = await axiosInstance(options);
+
+  return response;
+};
+
+const fetchSchedule = async (
+  axiosInstance: AxiosInstance
+): Promise<ISchedule> => {
+  const response = await getSchedule(axiosInstance);
   const $ = cheerio.load(response.data);
+
+  const term = $(
+    "#ctl00_ctl00_ContentPlaceHolder_RightContentPlaceHolder_lblData"
+  ).text();
+  const termTable = term.split(" ");
+  const termStart = termTable[1];
+  const termEnd = termTable[3];
+  const termStartMoment = moment(termStart, "DD.MM.YYYY");
+  const day = moment(termStart, "DD.MM.YYYY");
+  const termEndMoment = moment(termEnd, "DD.MM.YYYY");
 
   const table = $(
     "#ctl00_ctl00_ContentPlaceHolder_RightContentPlaceHolder_dgDane > tbody > tr"
   );
-
   var scheduleTable: { [id: string]: IEventItem[] } = {};
   var marks: { [id: string]: IMarked } = {};
+
+  while (!day.isSame(termEndMoment)) {
+    scheduleTable[day.format("YYYY-MM-DD")] = [];
+    marks[day.format("YYYY-MM-DD")] = { marked: false };
+    day.add(1, "day");
+  }
 
   for (let index = 1; index < table.length; index++) {
     const date = table[index].children[0].children[0].data;
@@ -60,7 +111,7 @@ async function fetchSchedule(response: AxiosResponse): Promise<ISchedule> {
 
     var dateString = dateMoment.format("YYYY-MM-DD");
 
-    if (scheduleTable[dateString] == undefined) {
+    if (marks[dateString].marked) {
       scheduleTable[dateString] = [
         {
           name: name,
@@ -92,7 +143,9 @@ async function fetchSchedule(response: AxiosResponse): Promise<ISchedule> {
     }
   }
 
-  return { eventsTable: scheduleTable, marks: marks };
-}
+  console.log("returning schedule");
+
+  return { eventsTable: scheduleTable, marks: marks, minDate: termStartMoment, maxDate: termEndMoment };
+};
 
 export default fetchSchedule;
