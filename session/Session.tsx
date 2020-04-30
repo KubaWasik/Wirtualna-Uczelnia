@@ -1,6 +1,6 @@
-import axios, { AxiosInstance } from "axios";
 import { AsyncStorage } from "react-native";
 import moment from "moment";
+import axios, { AxiosInstance } from "axios";
 moment.locale("pl");
 
 const BASE_URL: string = "https://wu.up.krakow.pl/WU/";
