@@ -2,10 +2,11 @@ import NetInfo, { useNetInfo } from "@react-native-community/netinfo";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import * as Sentry from "@sentry/browser";
+import { Updates } from "expo";
 import * as SecureStore from "expo-secure-store";
 import moment from "moment";
 import React from "react";
-import { AsyncStorage } from "react-native";
+import { Alert, AsyncStorage } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 import { AuthContext, ISignIn } from "./context/Context";
 import * as Errors from "./errors/Errors";
@@ -16,7 +17,6 @@ import SplashScreen from "./screens/SplashScreen";
 import StudiesFieldScreen from "./screens/StudiesFieldScreen";
 import fetchLogin from "./session/FetchLogin";
 import { setStudiesField } from "./session/FetchStudiesField";
-import { createAxiosInstance } from "./session/Session";
 
 type RootStackParamList = {
   Splash: undefined;
@@ -30,8 +30,8 @@ type State = {
   isLoading: boolean;
   isSignout: boolean;
   userToken: string;
-  rememberStudiesField: string;
-  studiesFieldNumber: number;
+  rememberStudiesField: boolean;
+  studiesFieldNumber: string;
   offline: boolean;
   autoLogin: string;
 };
@@ -100,25 +100,54 @@ export default function App() {
       let userToken: string;
 
       try {
-        await createAxiosInstance();
         state.autoLogin = await AsyncStorage.getItem("autoLogin");
 
         state.autoLogin && state.autoLogin === "true"
           ? (userToken = await SecureStore.getItemAsync("userToken"))
           : (userToken = null);
 
-        state.rememberStudiesField = await AsyncStorage.getItem(
+        const rememberStudiesField = await AsyncStorage.getItem(
           "rememberStudiesField"
         );
-        const studiesFieldNumberFromMemory = await AsyncStorage.getItem(
+
+        state.rememberStudiesField = rememberStudiesField === "true";
+
+        state.studiesFieldNumber = await AsyncStorage.getItem(
           "studiesFieldNumber"
         );
-        state.studiesFieldNumber = studiesFieldNumberFromMemory
-          ? Number.parseInt(studiesFieldNumberFromMemory)
-          : null;
 
         if (state.rememberStudiesField && state.studiesFieldNumber) {
-          setStudiesField(state.studiesFieldNumber, true);
+          try {
+            await setStudiesField(state.studiesFieldNumber, true);
+          } catch (error) {
+            if (error === Errors.AXIOS_NETWORK) {
+              // Timeout - suggest offline mode
+              Alert.alert(
+                "Błąd",
+                "Nastąpił błąd połączenia, Twoja sieć może mieć za słaby zasięg, spróbuj ponownie. Jeśli widzisz to kolejny raz możesz spróbować wejśc do trybu offline zamiast tego",
+                [
+                  { text: "Zamknij", onPress: () => null },
+                  { text: "Spróbuj ponownie", onPress: () => Updates.reload() },
+                  {
+                    text: "Tryb offline",
+                    onPress: () => null /* TODO: make it works*/,
+                  },
+                ],
+                { cancelable: false }
+              );
+            } else {
+              // Other errors - suggest restart
+              Alert.alert(
+                "Błąd",
+                "Nastąpił nieoczekiwany błąd, spróbuj ponownie.",
+                [
+                  { text: "Zamknij", onPress: () => null },
+                  { text: "Spróbuj ponownie", onPress: () => Updates.reload() },
+                ],
+                { cancelable: false }
+              );
+            }
+          }
         }
       } catch (e) {
         // Restoring token failed
@@ -135,6 +164,7 @@ export default function App() {
 
       // This will switch to the App screen or Auth screen and this loading
       // screen will be unmounted and thrown away.
+      // dispatch({ type: "RESTORE_TOKEN", token: userToken });
       dispatch({ type: "RESTORE_TOKEN", token: userToken });
     };
 
@@ -177,7 +207,6 @@ export default function App() {
         if (response === "SUCCESS") {
           const token = moment().format("YYYY-MM-DD hh:mm");
           await SecureStore.setItemAsync("userToken", token);
-          setStudiesField(171737, true);
 
           dispatch({ type: "SIGN_IN", token: token });
         } else {
@@ -186,7 +215,6 @@ export default function App() {
       },
       signOut: async () => {
         await SecureStore.deleteItemAsync("userToken");
-        const t = await SecureStore.getItemAsync("userToken");
 
         dispatch({ type: "SIGN_OUT" });
       },
@@ -239,8 +267,7 @@ export default function App() {
               />
             </Stack.Navigator>
           ) : /* TODO: If user have not choose field of study yet then show StudiesFieldScreen */
-          state.rememberStudiesField === "false" ||
-            state.rememberStudiesField == null ? (
+          !state.rememberStudiesField || state.rememberStudiesField == null ? (
             // User is signed in
             <Stack.Navigator>
               <Stack.Screen

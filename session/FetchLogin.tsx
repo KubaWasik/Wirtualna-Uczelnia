@@ -1,62 +1,52 @@
-import { AxiosResponse } from "axios";
+import { AxiosRequestConfig } from "axios";
 import * as SecureStore from "expo-secure-store";
+import qs from "qs";
 import { AsyncStorage } from "react-native";
 import cheerio from "react-native-cheerio";
 import { ISignIn } from "../context/Context";
 import * as Errors from "../errors/Errors";
 import { setStudiesField } from "./FetchStudiesField";
-import { LOGIN_URL, getAxiosInstance } from "./Session";
+import { LOGIN_URL, Session } from "./Session";
 
 async function fetchLogin(
   data: ISignIn,
-  rememberStudiesField: string,
-  studiesFieldNumber: number
+  rememberStudiesField: boolean,
+  studiesFieldNumber: string
 ): Promise<string> {
-  const axiosInstance = await getAxiosInstance();
+  const axiosInstance = await Session.getInstance();
 
-  const loginData =
-    "ctl00_ctl00_ScriptManager1_HiddenField=&" +
-    "__EVENTTARGET=&" +
-    "__EVENTARGUMENT=&" +
-    "__VIEWSTATE=&" +
-    "__VIEWSTATEGENERATOR=&" +
-    "ctl00_ctl00_TopMenuPlaceHolder_TopMenuContentPlaceHolder_MenuTop3_menuTop3_ClientState=&" +
-    "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24txtIdent=" +
-    data.login +
-    "&" +
-    "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24txtHaslo=" +
-    data.password +
-    "&" +
-    "ctl00%24ctl00%24ContentPlaceHolder%24MiddleContentPlaceHolder%24butLoguj=Zaloguj";
+  const loginGetResponse = await axiosInstance.get(LOGIN_URL);
+  const login$ = cheerio.load(loginGetResponse.data);
+  const loginInputsToPost = {};
+  const hiddenLoginInputs = login$("input[type='hidden']");
+  hiddenLoginInputs.each((index, element) => {
+    loginInputsToPost[element.attribs.name] = element.attribs.value
+      ? element.attribs.value
+      : "";
+  });
 
-  var response: AxiosResponse = undefined;
+  loginInputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$txtIdent"
+  ] = data.login;
+  loginInputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$txtHaslo"
+  ] = data.password;
+  loginInputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$MiddleContentPlaceHolder$butLoguj"
+  ] = "Zaloguj";
 
-  try {
-    response = await axiosInstance.post(
-      LOGIN_URL,
-      { data: loginData },
-      {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      }
-    );
-  } catch (error) {
-    console.log(error);
+  const loginOptions: AxiosRequestConfig = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    data: qs.stringify(loginInputsToPost),
+    url: LOGIN_URL,
+  };
 
-    if (error.code === "ECONNABORTED") {
-      return Errors.NETWORK_ERROR;
-    }
+  const response = await axiosInstance(loginOptions);
 
-    return Errors.ERROR;
-  }
-
-  var $ = undefined;
-
-  try {
-    $ = cheerio.load(response.data);
-  } catch (error) {
-    console.log(error);
-    return Errors.UNEXPECTED_ERROR;
-  }
+  const $ = cheerio.load(response.data);
 
   const error = $(
     "#ctl00_ctl00_ContentPlaceHolder_MiddleContentPlaceHolder_lblMessage"
@@ -76,35 +66,23 @@ async function fetchLogin(
   }
 
   if (response.request.responseURL.includes("KierunkiStudiow")) {
-    console.log("Login succed, logged in");
-    try {
-      await SecureStore.setItemAsync("loginUser", data.login);
-      await SecureStore.setItemAsync("passwordUser", data.password);
+    console.log("Login success, logged in");
+    await SecureStore.setItemAsync("loginUser", data.login);
+    await SecureStore.setItemAsync("passwordUser", data.password);
 
-      const autoLogin = await AsyncStorage.getItem("autoLogin");
-      if (!autoLogin) {
-        await AsyncStorage.setItem("autoLogin", "true");
-      }
-    } catch (error) {
-      console.log(error);
+    const autoLogin = await AsyncStorage.getItem("autoLogin");
+    if (!autoLogin) {
+      await AsyncStorage.setItem("autoLogin", "true");
     }
 
     console.log("Studies field set to remember: " + rememberStudiesField);
 
-    if (rememberStudiesField === "true") {
+    if (rememberStudiesField) {
       console.log(
         "Studies field number read from memory: " + studiesFieldNumber
       );
 
-      const code = await setStudiesField(studiesFieldNumber, true);
-
-      if (code === "FAIL") {
-        return Errors.NETWORK_ERROR;
-      } else if (code === "SUCCESS") {
-        return code;
-      } else {
-        return Errors.ERROR;
-      }
+      await setStudiesField(studiesFieldNumber, true);
     }
 
     return "SUCCESS";

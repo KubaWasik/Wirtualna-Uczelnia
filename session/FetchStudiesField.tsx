@@ -1,9 +1,10 @@
+import * as Sentry from "@sentry/browser";
+import { AxiosRequestConfig } from "axios";
+import qs from "qs";
 import { AsyncStorage } from "react-native";
 import cheerio from "react-native-cheerio";
-import { STUDIES_FIELDS_URL, getAxiosInstance } from "./Session";
-import qs from "qs";
-import { AxiosRequestConfig } from "axios";
-import * as Sentry from '@sentry/browser';
+import * as Errors from "../errors/Errors";
+import { GRADES_URL, Session, STUDIES_FIELDS_URL } from "./Session";
 
 export interface IField {
   id: number;
@@ -11,8 +12,8 @@ export interface IField {
   value: number;
 }
 
-export async function fetchStudiesField(): Promise<IField[]> {
-  const axiosInstance = await getAxiosInstance();
+export async function fetchStudiesField() {
+  const axiosInstance = await Session.getInstance();
 
   const response = await axiosInstance.get(STUDIES_FIELDS_URL);
 
@@ -45,10 +46,10 @@ export async function fetchStudiesField(): Promise<IField[]> {
 }
 
 export async function setStudiesField(
-  field: number,
-  checked: boolean
-): Promise<string> {
-  const axiosInstance = await getAxiosInstance();
+  field: string,
+  saveRememberValue: boolean
+) {
+  const axiosInstance = await Session.getInstance();
 
   const response = await axiosInstance.get(STUDIES_FIELDS_URL);
 
@@ -58,11 +59,17 @@ export async function setStudiesField(
 
   const hiddenInputs = $("input[type='hidden']");
   hiddenInputs.each((index, element) => {
-    inputsToPost[element.attribs.name] = element.attribs.value;
+    inputsToPost[element.attribs.name] = element.attribs.value
+      ? element.attribs.value
+      : "";
   });
 
-  inputsToPost["ctl00$ctl00$ContentPlaceHolder$RightContentPlaceHolder$rbKierunki"] = field.toString();
-  inputsToPost["ctl00$ctl00$ContentPlaceHolder$RightContentPlaceHolder$Button1"] = "wybierz";
+  inputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$RightContentPlaceHolder$rbKierunki"
+  ] = field;
+  inputsToPost[
+    "ctl00$ctl00$ContentPlaceHolder$RightContentPlaceHolder$Button1"
+  ] = "wybierz";
 
   const options: AxiosRequestConfig = {
     method: "POST",
@@ -74,39 +81,62 @@ export async function setStudiesField(
       "Origin": "https://wu.up.krakow.pl",
       "Upgrade-Insecure-Requests": "1",
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Mobile Safari/537.36",
+      "User-Agent":
+        "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Mobile Safari/537.36",
       "Sec-Fetch-Dest": "document",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+      "Accept":
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
       "Sec-Fetch-Site": "same-origin",
       "Sec-Fetch-Mode": "navigate",
       "Sec-Fetch-User": "?1",
       "Referer": "https://wu.up.krakow.pl/WU/KierunkiStudiow.aspx",
       "Accept-Encoding": "gzip, deflate, br",
-      "Accept-Language": "pl,en-GB;q=0.9,en;q=0.8,en-US;q=0.7"
+      "Accept-Language": "pl,en-GB;q=0.9,en;q=0.8,en-US;q=0.7",
     },
     data: qs.stringify(inputsToPost),
-    url: STUDIES_FIELDS_URL
-  }
+    url: STUDIES_FIELDS_URL,
+  };
 
   const postResponse = await axiosInstance(options);
 
   if (postResponse.request.responseURL.includes("Ogloszenia")) {
-    if (checked) {
-      await AsyncStorage.setItem("rememberStudiesField", "true");
-      console.log("rememberStudiesField set in memory to 'true'");
-    } else {
-      await AsyncStorage.setItem("rememberStudiesField", "false");
-      console.log("rememberStudiesField set in memory to 'false'");
-    }
-  
-    await AsyncStorage.setItem("studiesFieldNumber", field.toString());
-    console.log("Saving studies field to memory: " + field);
+    saveStudiesField(saveRememberValue, field);
+  } else if (postResponse.request.responseURL.includes("Error404")) {
+    const errorResponse = await axiosInstance.get(GRADES_URL);
+    if (errorResponse.request.responseURL.includes("OcenyP")) {
+      Sentry.setExtra("data", postResponse.config);
+      Sentry.captureMessage(
+        "Studies field Error404 but login success",
+        Sentry.Severity.Warning
+      );
 
-    return "SUCCESS";
+      saveStudiesField(saveRememberValue, field);
+    } else {
+      Sentry.setExtra("data", postResponse.config);
+      Sentry.captureMessage(
+        "Studies field Error404, not logged in",
+        Sentry.Severity.Critical
+      );
+
+      throw new Errors.AxiosNetwork("Studies field Error404");
+    }
   } else {
     Sentry.setExtra("data", postResponse.config);
-    Sentry.captureException(new Error("Wybór kierunku"));
+    Sentry.captureMessage("Studies field error");
 
-    return postResponse.request.responseURL;
+    throw new Errors.AxiosNetwork("Studies field");
   }
 }
+
+const saveStudiesField = async (saveRememberValue: boolean, field: string) => {
+  if (saveRememberValue) {
+    await AsyncStorage.setItem("rememberStudiesField", "true");
+    console.log("rememberStudiesField set in memory to 'true'");
+  } else {
+    await AsyncStorage.setItem("rememberStudiesField", "false");
+    console.log("rememberStudiesField set in memory to 'false'");
+  }
+
+  await AsyncStorage.setItem("studiesFieldNumber", field);
+  console.log("Saving studies field to memory: " + field);
+};

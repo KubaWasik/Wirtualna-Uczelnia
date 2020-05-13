@@ -1,5 +1,6 @@
+import { AxiosInstance } from "axios";
 import cheerio from "react-native-cheerio";
-import { PROFILE_URL, getAxiosInstance } from "./Session";
+import { Session, PROFILE_URL } from "./Session";
 
 export interface IDataItem {
   key: number;
@@ -7,17 +8,12 @@ export interface IDataItem {
   description: string;
 }
 
-async function fetchUserData(): Promise<IDataItem[]> {
-  const axiosInstance = await getAxiosInstance();
-
+async function fetchUserData(axiosInstance: AxiosInstance): Promise<IDataItem[]> {
   const response = await axiosInstance.get(PROFILE_URL);
-
   const $ = cheerio.load(response.data);
-
   const table = $(
     "#ctl00_ctl00_ContentPlaceHolder_RightContentPlaceHolder_tab > tbody > tr"
   );
-
   var items: IDataItem[] = [];
 
   for (let index = 0; index < table.length; index++) {
