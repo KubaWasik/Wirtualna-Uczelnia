@@ -2,14 +2,15 @@ import { useNetInfo } from "@react-native-community/netinfo";
 import * as IntentLauncher from "expo-intent-launcher";
 import React from "react";
 import { AsyncStorage, Linking, Platform, ScrollView, View } from "react-native";
-import { Appbar, Banner, List } from "react-native-paper";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { Appbar, Banner, List, Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
-import fetchGrades, { IGrade } from "../session/FetchGrades";
+import { IGrades } from "../session/FetchGrades";
 import LoadingOverview from "./LoadingOverview";
 
 function GradesScreen() {
   const [loading, setLoading] = React.useState(false);
-  const [gradesTable, setGradesTable] = React.useState<IGrade[]>([]);
+  const [gradesTable, setGradesTable] = React.useState<IGrades>({});
   const [offlineMode, setOfflineMode] = React.useState(false);
   const [bannerVisible, setBannerVisible] = React.useState(false);
 
@@ -31,29 +32,20 @@ function GradesScreen() {
 
       const useOffline = await AsyncStorage.getItem("offlineMode");
       const gradesFromMemory = await AsyncStorage.getItem("gradesJSON");
-      var grades: IGrade[];
+      var grades: IGrades = undefined;
 
       console.log("Offline mode: " + useOffline);
 
       if (useOffline && useOffline === "true") {
         setOfflineMode(true);
         setBannerVisible(true);
-        if (gradesFromMemory) {
-          grades = JSON.parse(gradesFromMemory);
-        }
-      } else {
-        grades = await fetchGrades();
+      }
+
+      if (gradesFromMemory) {
+        grades = JSON.parse(gradesFromMemory);
       }
 
       setGradesTable(grades);
-
-      if (
-        (grades && JSON.stringify(grades) !== gradesFromMemory) ||
-        (grades && !gradesFromMemory)
-      ) {
-        const json = JSON.stringify(grades);
-        await AsyncStorage.setItem("gradesJSON", json);
-      }
 
       setLoading(false);
     };
@@ -144,14 +136,39 @@ function GradesScreen() {
           Jesteś w trybie offline
         </Banner>
       )}
-      <ScrollView>
-        {gradesTable.map((element) => (
-          <List.Item
-            key={element.index}
-            title={element.courseName}
-            description={`${element.type}, ${element.graduator}, ${element.numberOfHours}, ${element.firstTerm}, ${element.corrective}, ${element.comission}, ${element.ects}`}
-          />
-        ))}
+      <ScrollView style={{ marginBottom: 70, paddingBottom: 20 }}>
+        <List.AccordionGroup>
+          {Object.keys(gradesTable).map((subject) => (
+            <List.Accordion
+              key={subject}
+              title={subject}
+              id={subject}
+              left={(props) => (
+                <List.Icon {...props} icon="help-circle-outline" />
+              )}
+            >
+              {Object.keys(gradesTable[subject]).map((gradeItem) => (
+                <TouchableOpacity
+                  style={{
+                    borderRadius: 50,
+                    backgroundColor: "#e0ecff",
+                    padding: 10,
+                    margin: 5,
+                  }}
+                  key={gradeItem}
+                  onPress={() => null}
+                >
+                  <Text>
+                    {gradeItem} -{" "}
+                    {gradesTable[subject][gradeItem].firstTerm.trim().length
+                      ? gradesTable[subject][gradeItem].firstTerm
+                      : "Brak oceny"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </List.Accordion>
+          ))}
+        </List.AccordionGroup>
       </ScrollView>
     </View>
   );
