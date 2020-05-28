@@ -1,11 +1,22 @@
+import { StackNavigationProp } from "@react-navigation/stack";
 import { Updates } from "expo";
 import React from "react";
 import { AsyncStorage, StyleSheet, View } from "react-native";
 import { Appbar, Button, Switch, Title } from "react-native-paper";
+import { RootStackParamList } from "../App";
 import { AuthContext } from "../context/Context";
 import LoadingOverview from "./LoadingOverview";
 
-export default function SettingsScreen() {
+type SettingsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "Home"
+>;
+
+type Props = {
+  navigation: SettingsScreenNavigationProp;
+};
+
+export default function SettingsScreen(props: Props) {
   const [loading, setLoading] = React.useState(false);
   const [autoLogin, setAutoLogin] = React.useState(false);
   const [rememberStudiesField, setRememberStudiesField] = React.useState(false);
@@ -81,11 +92,24 @@ export default function SettingsScreen() {
           />
         </View>
         <View style={styles.flexRow}>
-          <Button style={styles.button50} mode="outlined" onPress={async () => {
+          <Button
+            style={styles.button70}
+            mode="outlined"
+            onPress={() => {
+              props.navigation.navigate("StudiesField");
+            }}
+          >
+            Zmień kierunek studiów
+          </Button>
+        </View>
+        <View style={styles.flexRow}>
+          <Button
+            style={styles.button50}
+            mode="outlined"
+            onPress={async () => {
               await signOut();
               Updates.reload();
-            }
-            }
+            }}
           >
             Wyloguj
           </Button>

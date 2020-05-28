@@ -43,7 +43,7 @@ function StudiesFieldScreen(props: Props) {
       await fetchAllData();
 
       setLoading(false);
-      props.navigation.navigate("Home");
+      props.navigation.navigate("Home", { screen: "Schedule" });
     } catch (error) {
       if (error instanceof Errors.AxiosNetwork) {
         // Timeout - suggest offline mode

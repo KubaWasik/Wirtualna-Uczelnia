@@ -61,9 +61,11 @@ function ScheduleScreen() {
   const [minDate, setMinDate] = React.useState<moment.Moment>(moment());
   const [maxDate, setMaxDate] = React.useState<moment.Moment>(moment());
   const [isOpen, setIsOpen] = React.useState(false);
+  const [refreshingInterval, setRefreshingInterval] = React.useState(0);
 
   React.useEffect(() => {
     const fetchData = async () => {
+      console.log("Data update");
       setLoading(true);
 
       const scheduleFromMemory = await AsyncStorage.getItem(
@@ -92,6 +94,16 @@ function ScheduleScreen() {
       setMinDate(schedule.minDate);
       setMaxDate(schedule.maxDate);
 
+      setRefreshingInterval(
+        setInterval(() => {
+          try {
+            fetchData();
+          } catch (error) {
+            Alert.alert("Wystąpił nieoczekiwany błąd", JSON.stringify(error));
+          }
+        }, 60000)
+      );
+
       setLoading(false);
     };
 
@@ -100,6 +112,10 @@ function ScheduleScreen() {
     } catch (error) {
       Alert.alert("Wystąpił nieoczekiwany błąd", JSON.stringify(error));
     }
+
+    return () => {
+      clearInterval(refreshingInterval);
+    };
   }, []);
 
   function renderItem(item: IEventItem) {

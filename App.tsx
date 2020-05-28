@@ -18,10 +18,10 @@ import StudiesFieldScreen from "./screens/StudiesFieldScreen";
 import fetchLogin from "./session/FetchLogin";
 import { setStudiesField } from "./session/FetchStudiesField";
 
-type RootStackParamList = {
+export type RootStackParamList = {
   Splash: undefined;
   Offline: undefined;
-  Home: undefined;
+  Home: { screen: string };
   LogIn: undefined;
   StudiesField: undefined;
 };

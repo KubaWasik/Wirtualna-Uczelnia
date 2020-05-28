@@ -3,7 +3,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import React from "react";
 import { AsyncStorage, Linking, Platform, ScrollView, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { Appbar, Banner, List, Text } from "react-native-paper";
+import { Appbar, Banner, Button, List, Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { IGrades } from "../session/FetchGrades";
 import LoadingOverview from "./LoadingOverview";
@@ -59,6 +59,9 @@ function GradesScreen() {
 
       <Appbar.Header theme={{ colors: { primary: "#00c853" } }}>
         <Appbar.Content title="Wirtualna Uczelnia" />
+        <Appbar.Action icon="arrow-left-thick"></Appbar.Action>
+        <Appbar.Action icon="arrow-right-thick"></Appbar.Action>
+        <Appbar.Action icon="power"></Appbar.Action>
       </Appbar.Header>
       {offlineMode ? (
         <Banner
@@ -136,6 +139,18 @@ function GradesScreen() {
           Jesteś w trybie offline
         </Banner>
       )}
+      <View
+        style={{
+          height: "8%",
+          flexDirection: "row",
+          justifyContent: "space-around",
+          alignItems: "center",
+        }}
+      >
+        <Button mode="contained">Poprzedni</Button>
+        <Text>Aktualny</Text>
+        <Button mode="contained">Następny</Button>
+      </View>
       <ScrollView style={{ marginBottom: 70, paddingBottom: 20 }}>
         <List.AccordionGroup>
           {Object.keys(gradesTable).map((subject) => (

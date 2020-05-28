@@ -6,7 +6,7 @@ import ScheduleScreen from "./ScheduleScreen";
 import SettingsScreen from "./SettingsScreen";
 import UserDataScreen from "./UserDataScreen";
 
-type StackParamList = {
+export type StackParamList = {
   Schedule: undefined;
   Grades: undefined;
   UserData: undefined;
